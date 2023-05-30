@@ -1,17 +1,33 @@
 import { Plugin, Menu, WorkspaceLeaf, Editor, MarkdownView } from 'obsidian';
+import { Extension, Prec } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+
 
 export default class OrgCyclePlugin extends Plugin {
   async onload() {
 	const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 	const editor = activeView?.editor;
 	console.log("obsidian-org-cycle loaded")
+	   
+	this.registerEditorExtension(Prec.highest(keymap.of(
+		[{
+			key: 'Tab',
+			run: (): boolean => {
+				console.log("tab pressed");
+				if (editor) {
+					return this.orgCycle(editor)
+				}
+				else {
+			        return false
+				}
+			}
+		}])
+	));
+	
     this.addCommand({
       id: 'org-cycle',
       name: 'Org cycle',
       checkCallback: (checking: boolean) => {
-		console.log("obsidian-org-cycle command org-cycle executed")
-		editor?.exec('toggleFold')
-		return true
       },
     });
     this.addCommand({
@@ -56,14 +72,25 @@ export default class OrgCyclePlugin extends Plugin {
 	});
   }
 
-  toggleOrgCycle(leaf: WorkspaceLeaf) {
-	exec('goUp')
-    const view = leaf.view;
-    const editor = view.editor;
-    const cursor = editor.getCursor();
-    const line = editor.getLine(cursor.line);
-	editor.foldCode({ line: line.number, ch: 0 })
+
+  orgCycle(editor: Editor) {
+	console.log("obsidian-org-cycle command org-cycle executed")
+	// find heading level
+	// find next heading at this level or lower
+	// insert a new heading one line before the next heading
+	// move the cursor to the new heading
+	editor?.exec('toggleFold')
+	return true
   }
+
+	toggleOrgCycle(leaf: WorkspaceLeaf) {
+		exec('goUp')
+		const view = leaf.view;
+		const editor = view.editor;
+		const cursor = editor.getCursor();
+		const line = editor.getLine(cursor.line);
+		editor.foldCode({ line: line.number, ch: 0 })
+	}
 }
 
 // import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
