@@ -1,11 +1,11 @@
 {
-	"id": "obsidian-sample-plugin",
-	"name": "Sample Plugin",
+	"id": "obsidian-org-cycle",
+	"name": "Org cycle",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Implement the org-cycle functionality from Emacs' org-mode.",
+	"author": "Johannes C. Mayer",
+	"authorUrl": "https://www.lesswrong.com/users/johannes-c-mayer",
+	"fundingUrl": "https://www.patreon.com/johannesCmayer",
 	"isDesktopOnly": false
 }
