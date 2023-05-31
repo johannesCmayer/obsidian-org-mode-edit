@@ -43,6 +43,12 @@ export default class DiamondPickaxePlugin extends Plugin {
     this.addCommand({
       id: 'cycle-global',
       name: 'Cycle Global',
+	  hotkeys: [
+		  {
+		  modifiers: ['Shift'],
+		  key: 'Tab',
+		  },
+	  ],
       editorCallback: (editor: Editor, view: MarkdownView) => {
 		console.log("obsidian-org-cycle command org-cycle executed")
 		editor?.exec('toggleFold')
@@ -53,6 +59,12 @@ export default class DiamondPickaxePlugin extends Plugin {
     this.addCommand({
       id: 'subtree-indent',
       name: 'Subtree Indent',
+	  hotkeys: [
+		  {
+		  modifiers: ['Alt'],
+		  key: 'ArrowRight',
+		  },
+	  ],
       editorCallback: (editor: Editor, view: MarkdownView) => {
 		this.indent(editor, 1)
       },
@@ -61,6 +73,12 @@ export default class DiamondPickaxePlugin extends Plugin {
     this.addCommand({
       id: 'subtree-unindent',
       name: 'Subtree Unindent',
+	  hotkeys: [
+		  {
+		  modifiers: ['Alt'],
+		  key: 'ArrowLeft',
+		  },
+	  ],
       editorCallback: (editor: Editor, view: MarkdownView) => {
 		this.indent(editor, -1)
       },
@@ -69,6 +87,12 @@ export default class DiamondPickaxePlugin extends Plugin {
     this.addCommand({
       id: 'subtree-move-up',
       name: 'Subtree Move Up',
+	  hotkeys: [
+		  {
+		  modifiers: ['Alt'],
+		  key: 'ArrowUp',
+		  },
+	  ],
       editorCallback: (editor: Editor, view: MarkdownView) => {
 		// Get current heading and all content underneeth
 		//     find heading
@@ -82,6 +106,12 @@ export default class DiamondPickaxePlugin extends Plugin {
     this.addCommand({
       id: 'subtree-move-down',
       name: 'Subtree Move Down',
+	  hotkeys: [
+		  {
+		  modifiers: ['Alt'],
+		  key: 'ArrowDown',
+		  },
+	  ],
       editorCallback: (editor: Editor, view: MarkdownView) => {
       },
     });
@@ -89,6 +119,12 @@ export default class DiamondPickaxePlugin extends Plugin {
 	this.addCommand({
 		id: 'heading-insert',
 		name: "Heading Insert",
+		hotkeys: [
+			{
+			modifiers: ['Ctrl'],
+			key: 'Enter',
+			},
+		],
         editorCallback: (editor: Editor, view: MarkdownView) => {
 			const startLn = editor.getCursor().line
 			const prevHeadingLevel = this.prevHeadingLevel(editor, startLn)
@@ -130,16 +166,16 @@ export default class DiamondPickaxePlugin extends Plugin {
 		}
 	}
 
-	prevHeadingLevel(editor: Editor, fromLn: number) : number {
-		const prevHeadingLn = this.prevHeadingLn(editor, fromLn)
-		if (prevHeadingLn) {
-			const prevHeadingLine = editor.getLine(prevHeadingLn)
-			return this.headingLevel(prevHeadingLine)
-		}
-		else {
-			return 0
-		}
-	}
+	// prevHeadingLevel(editor: Editor, fromLn: number) : number {
+	// 	const prevHeadingLn = this.prevHeadingLn(editor, fromLn)
+	// 	if (prevHeadingLn) {
+	// 		const prevHeadingLine = editor.getLine(prevHeadingLn)
+	// 		return this.headingLevel(prevHeadingLine)
+	// 	}
+	// 	else {
+	// 		return 0
+	// 	}
+	// }
 
 	nextHeadingLn(editor: Editor, fromLn: number) : number {
 		/**
@@ -235,8 +271,6 @@ export default class DiamondPickaxePlugin extends Plugin {
 	getNode(ln: number) {
 
 	}
-
-
 
 	prevHeadingLevel(editor: Editor, currentLn: number): number {
 		const anyHeading = RegExp('^#+ ')
