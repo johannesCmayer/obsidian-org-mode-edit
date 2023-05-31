@@ -8,14 +8,14 @@ import { EditorView, keymap } from '@codemirror/view';
 
 export default class OrgCyclePlugin extends Plugin {
   async onload() {
-	const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-	const editor = activeView?.editor;
 	console.log("obsidian-org-cycle loaded")
 	   
 	this.registerEditorExtension(Prec.highest(keymap.of(
 		[{
 			key: 'Tab',
 			run: (): boolean => {
+				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+				const editor = activeView?.editor;
 				console.log("tab pressed");
 				if (editor) {
 					return this.orgCycle(editor)
@@ -30,13 +30,14 @@ export default class OrgCyclePlugin extends Plugin {
     this.addCommand({
       id: 'org-cycle',
       name: 'Org cycle',
-      checkCallback: (checking: boolean) => {
+      editorCallback: (editor: Editor, view: MarkdownView) => {
+		this.orgCycle(editor)
       },
     });
     this.addCommand({
       id: 'org-global-cycle',
       name: 'Org global cycle',
-      checkCallback: (checking: boolean) => {
+      editorCallback: (editor: Editor, view: MarkdownView) => {
 		console.log("obsidian-org-cycle command org-cycle executed")
 		editor?.exec('toggleFold')
 		return true
@@ -45,7 +46,7 @@ export default class OrgCyclePlugin extends Plugin {
     this.addCommand({
       id: 'org-indent-subtree',
       name: 'Org global cycle',
-      checkCallback: (checking: boolean) => {
+      editorCallback: (editor: Editor, view: MarkdownView) => {
 		console.log("obsidian-org-cycle command org-cycle executed")
 		// Determine if we are at bullet list or heading
 		// compute subtree
@@ -58,7 +59,7 @@ export default class OrgCyclePlugin extends Plugin {
     this.addCommand({
       id: 'org-unindent-subtree',
       name: 'Org global cycle',
-      checkCallback: (checking: boolean) => {
+      editorCallback: (editor: Editor, view: MarkdownView) => {
 		console.log("obsidian-org-cycle command org-cycle executed")
 		editor?.exec('toggleFold')
 		return true
@@ -67,22 +68,63 @@ export default class OrgCyclePlugin extends Plugin {
 	this.addCommand({
 		id: 'org-insert-heading',
 		name: "Org insert heading",
-		checkCallback: (checking: boolean) => {
-			const ln = editor?.getCursor()?.line;
-			// find heading level
-			// find next heading at this level or lower
-			// insert a new heading one line before the next heading
-			// move the cursor to the new heading
-			if (!ln)
-				return false;
-			for (let lineNum = ln+1; lineNum <10000; lineNum++)
-				if (ln){
-					editor?.getLine(ln)
+        editorCallback: (editor: Editor, view: MarkdownView) => {
+			const startLn = editor.getCursor().line
+			const prevHeadingLevel = this.previousHeadingLevel(editor, startLn)
+			const headingStr = "#".repeat(Math.max(1, prevHeadingLevel)) + " "
+			const totalLines = editor.lineCount()
+
+			for (let currentLn = startLn + 1; currentLn < totalLines; currentLn++) {
+				const line = editor.getLine(currentLn);
+				const headingLevel = this.headingLevelOnLine(line)
+				if (headingLevel != 0 && headingLevel <= Math.max(1, prevHeadingLevel)) {
+					editor.replaceRange(headingStr + "\n", {line: currentLn, ch: 0})
+					editor.setCursor({line: currentLn, ch: headingStr.length})
+					return
 				}
-			},
-	});
+			}
+
+			editor.replaceRange('\n', {line: totalLines, ch: 0})
+			editor.replaceRange(headingStr, {line: totalLines+1, ch: 0})
+			editor.setCursor({line: totalLines, ch: headingStr.length})
+		}
+	})
   }
 
+    isListItem(line: string){
+		return RegExp('^\s*[-*+]').test(line) || 
+		       RegExp('^\s*[0-9]+[).]').test(line)
+	}
+
+	isHeading(line: string) {
+		return this.headingLevelOnLine(line) > 0
+	}
+
+	previousHeadingLevel(editor: Editor, currentLn: number): number {
+		const anyHeading = RegExp('^#+')
+		var activeLn = currentLn;
+		while (true) {
+			if (activeLn == 0) {
+				return 0
+			}
+			var line = editor.getLine(activeLn);
+			if (anyHeading.test(line)) {
+				return this.headingLevelOnLine(line)
+			}
+			activeLn -= 1;
+		}
+	}
+
+	headingLevelOnLine(line: string): number {
+		const chars = [...line]
+		for (let i = 0; i < chars.length; i++) {
+			if (chars[i] != '#') {
+				return i
+			}
+		}
+		return line.length
+	}
+	
 // TODO: Think about how to share the functionality between orgCycle and orgGlobalCycle
 // TODO: Think about what is shared functionality between org-indent-subtree and org-cycle
   orgCycle(editor: Editor) {
@@ -102,12 +144,12 @@ export default class OrgCyclePlugin extends Plugin {
 	return true
   }
 
-	toggleOrgCycle(leaf: WorkspaceLeaf) {
-		exec('goUp')
-		const view = leaf.view;
-		const editor = view.editor;
-		const cursor = editor.getCursor();
-		const line = editor.getLine(cursor.line);
-		editor.foldCode({ line: line.number, ch: 0 })
-	}
+	// toggleOrgCycle(leaf: WorkspaceLeaf) {
+		// exec('goUp')
+		// const view = leaf.view;
+		// const editor = view.editor;
+		// const cursor = editor.getCursor();
+		// const line = editor.getLine(cursor.line);
+		// editor.foldCode({ line: line.number, ch: 0 })
+	// }
 }
