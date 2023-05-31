@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "DimondPickaxe",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "The only tool that you can use to bash away Obsidian's shortcomings, when it comes to manipulating heading and list outlines.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

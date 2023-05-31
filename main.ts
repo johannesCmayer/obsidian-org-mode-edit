@@ -8,8 +8,6 @@ import { EditorView, keymap } from '@codemirror/view';
 
 export default class DiamondPickaxePlugin extends Plugin {
   async onload() {
-	console.log("obsidian-org-cycle loaded")
-	   
 	this.registerEditorExtension(Prec.highest(keymap.of(
 		[{
 			key: 'Tab',
@@ -72,6 +70,12 @@ export default class DiamondPickaxePlugin extends Plugin {
       id: 'subtree-move-up',
       name: 'Subtree Move Up',
       editorCallback: (editor: Editor, view: MarkdownView) => {
+		// Get current heading and all content underneeth
+		//     find heading
+		// find insertion point
+		// insert new text
+		// calculate offset for original text
+		// delete original text
       },
     });
 
@@ -107,6 +111,57 @@ export default class DiamondPickaxePlugin extends Plugin {
 		}
 	})
   }
+
+    getHeadingBlock(editor: Editor) {
+
+	}
+
+    getListBlock() {
+
+	}
+
+	prevHeadingLn(editor: Editor, fromLn: number) : number | undefined {
+		var currentLn = fromLn
+		while (currentLn >= 0) {
+			if (this.isHeadingFromLn(editor, currentLn)) {
+				return currentLn
+			}
+			currentLn++
+		}
+	}
+
+	prevHeadingLevel(editor: Editor, fromLn: number) : number {
+		const prevHeadingLn = this.prevHeadingLn(editor, fromLn)
+		if (prevHeadingLn) {
+			const prevHeadingLine = editor.getLine(prevHeadingLn)
+			return this.headingLevel(prevHeadingLine)
+		}
+		else {
+			return 0
+		}
+	}
+
+	nextHeadingLn(editor: Editor, fromLn: number) : number {
+		/**
+		 * This function searches for the next line that contains a heading
+		 * downword from a given line, for a heading which has lower or equal 
+		 * indentation than the heading which is in the given line or the to 
+		 * the next heading above the given line.
+		 * 
+		 * @param editor
+		 * @param fromLn - the line from which to search
+		 */
+		const prevHeadingLn = this.prevHeadingLn(editor, fromLn)
+		const lineCount = editor.lineCount();
+		var currentLn = fromLn + 1
+		while (currentLn < lineCount) {
+			const currentLine = editor.getLine(currentLn)
+			if (this.headingLevel(currentLine)) {
+				
+			}
+			currentLn++
+		}
+	}
 
     // TDOO add functionality to indent all trees in a selection, if a selection is made
     indent(editor: Editor, ammount: number){
@@ -161,8 +216,12 @@ export default class DiamondPickaxePlugin extends Plugin {
 		       RegExp('^\\s*[0-9]+[).] ').test(line)
 	}
 
-	isHeading(line: string) {
+	isHeading(line: string) : boolean {
 		return this.headingLevel(line) > 0
+	}
+
+	isHeadingFromLn(editor: Editor, ln: number) : boolean {
+		return this.isHeading(editor.getLine(ln))
 	}
 
 	jungerDoughter(indentChar: string, ln: number) {
@@ -176,6 +235,8 @@ export default class DiamondPickaxePlugin extends Plugin {
 	getNode(ln: number) {
 
 	}
+
+
 
 	prevHeadingLevel(editor: Editor, currentLn: number): number {
 		const anyHeading = RegExp('^#+ ')

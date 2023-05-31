@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-org-cycle",
-	"name": "Org cycle",
-	"version": "1.0.0",
+	"id": "dimond-pickaxe",
+	"name": "Dimond Pickaxe",
+	"version": "0.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Implement the org-cycle functionality from Emacs' org-mode.",
+	"description": "The only tool that you can use to bash away Obsidian's shortcomings, when it comes to manipulating heading and list outlines.",
 	"author": "Johannes C. Mayer",
 	"authorUrl": "https://www.lesswrong.com/users/johannes-c-mayer",
 	"fundingUrl": "https://www.patreon.com/johannesCmayer",
