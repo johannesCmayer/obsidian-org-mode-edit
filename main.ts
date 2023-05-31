@@ -2,6 +2,9 @@ import { Plugin, Menu, WorkspaceLeaf, Editor, MarkdownView } from 'obsidian';
 import { Extension, Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 
+// TODO: 
+// - Add default shortcuts
+// - Add option to overwrite or not overwrite default tab behavior   
 
 export default class OrgCyclePlugin extends Plugin {
   async onload() {
@@ -44,6 +47,10 @@ export default class OrgCyclePlugin extends Plugin {
       name: 'Org global cycle',
       checkCallback: (checking: boolean) => {
 		console.log("obsidian-org-cycle command org-cycle executed")
+		// Determine if we are at bullet list or heading
+		// compute subtree
+		// check if we can indent (headings only go to level 6, at least by default)
+		// indent all items in subtree
 		editor?.exec('toggleFold')
 		return true
       },
@@ -62,6 +69,10 @@ export default class OrgCyclePlugin extends Plugin {
 		name: "Org insert heading",
 		checkCallback: (checking: boolean) => {
 			const ln = editor?.getCursor()?.line;
+			// find heading level
+			// find next heading at this level or lower
+			// insert a new heading one line before the next heading
+			// move the cursor to the new heading
 			if (!ln)
 				return false;
 			for (let lineNum = ln+1; lineNum <10000; lineNum++)
@@ -72,14 +83,22 @@ export default class OrgCyclePlugin extends Plugin {
 	});
   }
 
-
+// TODO: Think about how to share the functionality between orgCycle and orgGlobalCycle
+// TODO: Think about what is shared functionality between org-indent-subtree and org-cycle
   orgCycle(editor: Editor) {
 	console.log("obsidian-org-cycle command org-cycle executed")
-	// find heading level
-	// find next heading at this level or lower
-	// insert a new heading one line before the next heading
-	// move the cursor to the new heading
 	editor?.exec('toggleFold')
+	// check if we are on a heading or bullet
+	// determine fold state of current item
+	// if folded: unfold at depth 1
+	//     fold all headings in subtree
+	//     find all direct subheadings
+	//     unfold direct subheadings
+	// else if unfolded at depth 1: unfold all
+	//     find all subheadins
+	//     unfold subheadings
+	// else: fold heading
+	//     fold all headings in subtree
 	return true
   }
 
@@ -92,141 +111,3 @@ export default class OrgCyclePlugin extends Plugin {
 		editor.foldCode({ line: line.number, ch: 0 })
 	}
 }
-
-// import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
-// // Remember to rename these classes and interfaces!
-
-// interface MyPluginSettings {
-// 	mySetting: string;
-// }
-
-// const DEFAULT_SETTINGS: MyPluginSettings = {
-// 	mySetting: 'default'
-// }
-
-// export default class MyPlugin extends Plugin {
-// 	settings: MyPluginSettings;
-
-// 	async onload() {
-// 		await this.loadSettings();
-
-// 		// This creates an icon in the left ribbon.
-// 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-// 			// Called when the user clicks the icon.
-// 			new Notice('This is a notice!');
-// 		});
-// 		// Perform additional things with the ribbon
-// 		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-// 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-// 		const statusBarItemEl = this.addStatusBarItem();
-// 		statusBarItemEl.setText('Status Bar Text');
-
-// 		// This adds a simple command that can be triggered anywhere
-// 		this.addCommand({
-// 			id: 'open-sample-modal-simple',
-// 			name: 'Open sample modal (simple)',
-// 			callback: () => {
-// 				new SampleModal(this.app).open();
-// 			}
-// 		});
-// 		// This adds an editor command that can perform some operation on the current editor instance
-// 		this.addCommand({
-// 			id: 'sample-editor-command',
-// 			name: 'Sample editor command',
-// 			editorCallback: (editor: Editor, view: MarkdownView) => {
-// 				console.log(editor.getSelection());
-// 				editor.replaceSelection('Sample Editor Command');
-// 			}
-// 		});
-// 		// This adds a complex command that can check whether the current state of the app allows execution of the command
-// 		this.addCommand({
-// 			id: 'open-sample-modal-complex',
-// 			name: 'Open sample modal (complex)',
-// 			checkCallback: (checking: boolean) => {
-// 				// Conditions to check
-// 				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-// 				if (markdownView) {
-// 					// If checking is true, we're simply "checking" if the command can be run.
-// 					// If checking is false, then we want to actually perform the operation.
-// 					if (!checking) {
-// 						new SampleModal(this.app).open();
-// 					}
-
-// 					// This command will only show up in Command Palette when the check function returns true
-// 					return true;
-// 				}
-// 			}
-// 		});
-
-// 		// This adds a settings tab so the user can configure various aspects of the plugin
-// 		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-// 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-// 		// Using this function will automatically remove the event listener when this plugin is disabled.
-// 		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-// 			console.log('click', evt);
-// 		});
-
-// 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-// 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-// 	}
-
-// 	onunload() {
-
-// 	}
-
-// 	async loadSettings() {
-// 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-// 	}
-
-// 	async saveSettings() {
-// 		await this.saveData(this.settings);
-// 	}
-// }
-
-// class SampleModal extends Modal {
-// 	constructor(app: App) {
-// 		super(app);
-// 	}
-
-// 	onOpen() {
-// 		const {contentEl} = this;
-// 		contentEl.setText('Woah!');
-// 	}
-
-// 	onClose() {
-// 		const {contentEl} = this;
-// 		contentEl.empty();
-// 	}
-// }
-
-// class SampleSettingTab extends PluginSettingTab {
-// 	plugin: MyPlugin;
-
-// 	constructor(app: App, plugin: MyPlugin) {
-// 		super(app, plugin);
-// 		this.plugin = plugin;
-// 	}
-
-// 	display(): void {
-// 		const {containerEl} = this;
-
-// 		containerEl.empty();
-
-// 		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-// 		new Setting(containerEl)
-// 			.setName('Setting #1')
-// 			.setDesc('It\'s a secret')
-// 			.addText(text => text
-// 				.setPlaceholder('Enter your secret')
-// 				.setValue(this.plugin.settings.mySetting)
-// 				.onChange(async (value) => {
-// 					console.log('Secret: ' + value);
-// 					this.plugin.settings.mySetting = value;
-// 					await this.plugin.saveSettings();
-// 				}));
-// 	}
-// }
