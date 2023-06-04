@@ -1,6 +1,7 @@
 import { Plugin, Notice, Menu, WorkspaceLeaf, Editor, MarkdownView } from 'obsidian';
 import { Extension, Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
+import { test } from 'node:test';
 
 // TODO: 
 // - Add default shortcuts (or at least mention them in the readme)
@@ -8,6 +9,7 @@ import { EditorView, keymap } from '@codemirror/view';
 
 export default class DiamondPickaxePlugin extends Plugin {
   async onload() {
+    this.tests()
 	this.registerEditorExtension(Prec.highest(keymap.of(
 		[{
 			key: 'Tab',
@@ -29,6 +31,29 @@ export default class DiamondPickaxePlugin extends Plugin {
       id: 'debug1',
       name: 'debug1',
       editorCallback: (editor: Editor, view: MarkdownView) => {
+		const ln = editor.getCursor().line
+		const block = this.getHeadingBlock(editor, ln)
+		if (! block) {
+			console.log("no block")
+			return
+		}
+		const [start, end] = block
+		const headingText = editor.getRange(
+			{line: start, ch: 0}, 
+			{line: end, ch: editor.getLine(end).length})
+
+		const prevHeadingLn = this.prevHeadingLn(editor, ln)
+		if (! prevHeadingLn) {
+			console.log("no heading 1")
+			return
+	    }
+		const prevprevHeadingLn = this.prevHeadingLn(editor, prevHeadingLn, true)
+		if (! prevprevHeadingLn) {
+			console.log("no heading 2")
+			return
+	    }
+
+		editor.replaceRange(headingText + "\n", {line: prevprevHeadingLn, ch: 0})
       },
     });
 	
@@ -50,8 +75,7 @@ export default class DiamondPickaxePlugin extends Plugin {
 		  },
 	  ],
       editorCallback: (editor: Editor, view: MarkdownView) => {
-		console.log("obsidian-org-cycle command org-cycle executed")
-		editor?.exec('toggleFold')
+		this.globalOrgCycle(editor)
 		return true
       },
     });
@@ -148,36 +172,38 @@ export default class DiamondPickaxePlugin extends Plugin {
 	})
   }
 
-    getHeadingBlock(editor: Editor) {
-
-	}
-
     getListBlock() {
 
 	}
 
-	prevHeadingLn(editor: Editor, fromLn: number) : number | undefined {
+	prevHeadingLn(editor: Editor, fromLn: number, strict : boolean = false) : number | undefined {
 		var currentLn = fromLn
-		while (currentLn >= 0) {
+		console.log("current line ", currentLn)
+		while (true) {
+			if (strict && currentLn < 0 || !strict && currentLn <= 0) {
+				break
+			}
+
 			if (this.isHeadingFromLn(editor, currentLn)) {
 				return currentLn
 			}
-			currentLn++
+			currentLn--
 		}
 	}
 
-	// prevHeadingLevel(editor: Editor, fromLn: number) : number {
-	// 	const prevHeadingLn = this.prevHeadingLn(editor, fromLn)
-	// 	if (prevHeadingLn) {
-	// 		const prevHeadingLine = editor.getLine(prevHeadingLn)
-	// 		return this.headingLevel(prevHeadingLine)
-	// 	}
-	// 	else {
-	// 		return 0
-	// 	}
-	// }
+	prevHeadingLevel(editor: Editor, fromLn: number) : number {
+		const prevHeadingLn = this.prevHeadingLn(editor, fromLn)
+	    console.log("prevHeadingLn", prevHeadingLn)
+		if (prevHeadingLn) {
+			const prevHeadingLine = editor.getLine(prevHeadingLn)
+			return this.headingLevel(prevHeadingLine)
+		}
+		else {
+			return 0
+		}
+	}
 
-	nextHeadingLn(editor: Editor, fromLn: number) : number {
+	nextHeadingLn(editor: Editor, fromLn: number) : number | undefined {
 		/**
 		 * This function searches for the next line that contains a heading
 		 * downword from a given line, for a heading which has lower or equal 
@@ -187,15 +213,36 @@ export default class DiamondPickaxePlugin extends Plugin {
 		 * @param editor
 		 * @param fromLn - the line from which to search
 		 */
-		const prevHeadingLn = this.prevHeadingLn(editor, fromLn)
+		const prevHeadingLn = this.prevHeadingLn(editor, fromLn) ?? 0
+		const prevHeadingLevel = this.headingLevel2(editor, prevHeadingLn)
 		const lineCount = editor.lineCount();
-		var currentLn = fromLn + 1
+		var currentLn = prevHeadingLn + 1
 		while (currentLn < lineCount) {
 			const currentLine = editor.getLine(currentLn)
-			if (this.headingLevel(currentLine)) {
-				
+			const currentDepth = this.headingLevel(currentLine)
+			if (currentDepth != 0 && currentDepth <= prevHeadingLevel) {
+				return currentLn
 			}
 			currentLn++
+		}
+	}
+
+	endOfHeadingBlock(editor: Editor, fromLn: number) : number {
+		const nextHeadingLn = this.nextHeadingLn(editor, fromLn)
+		if (nextHeadingLn) {
+			return nextHeadingLn - 1
+		} 
+		else {
+			return editor.lineCount() - 1
+		}
+	}
+
+	getHeadingBlock(editor: Editor, fromLn: number) : [number, number] | undefined {
+		const a = this.prevHeadingLn(editor, fromLn)
+		const b = this.endOfHeadingBlock(editor, fromLn)
+		console.log("X1: ", a, b)
+		if (a && b) {
+			return [a, b]
 		}
 	}
 
@@ -272,18 +319,18 @@ export default class DiamondPickaxePlugin extends Plugin {
 
 	}
 
-	prevHeadingLevel(editor: Editor, currentLn: number): number {
-		const anyHeading = RegExp('^#+ ')
-		var activeLn = currentLn;
-		while (activeLn >= 0) {
-			var line = editor.getLine(activeLn);
-			if (anyHeading.test(line)) {
-				return this.headingLevel(line)
-			}
-			activeLn -= 1;
-		}
-		return 0
-	}
+	// prevHeadingLevel(editor: Editor, currentLn: number): number {
+	// 	const anyHeading = RegExp('^#+ ')
+	// 	var activeLn = currentLn;
+	// 	while (activeLn >= 0) {
+	// 		var line = editor.getLine(activeLn);
+	// 		if (anyHeading.test(line)) {
+	// 			return this.headingLevel(line)
+	// 		}
+	// 		activeLn -= 1;
+	// 	}
+	// 	return 0
+	// }
 
 	headingLevel(line: string): number {
 		const chars = [...line]
@@ -300,11 +347,37 @@ export default class DiamondPickaxePlugin extends Plugin {
 		}
 		return line.length
 	}
+
+	headingLevel2(editor: Editor, ln: number) {
+		return this.headingLevel(editor.getLine(ln))
+	}
 	
+	globalOrgCycle(editor: Editor) {
+		const cursor = editor.getCursor()
+		const line = editor.getLine(cursor.line)
+		// If not a list or heading unindent line
+		if (!(this.isHeading(line) || this.isListItem(line)) 
+		    && line.length > 0 && line[0] == '\t') {
+			editor.replaceRange("", {line: cursor.line, ch: 0}, {line: cursor.line, ch: 1})
+		}
+		else {
+			editor?.exec('toggleFold')
+		}
+	}
+
 // TODO: Think about how to share the functionality between orgCycle and orgGlobalCycle
 // TODO: Think about what is shared functionality between org-indent-subtree and org-cycle
   orgCycle(editor: Editor) {
-	editor?.exec('toggleFold')
+	const cursor = editor.getCursor()
+	const line = editor.getLine(cursor.line)
+	// If not a list or heading insert tab
+	if (!(this.isHeading(line) || this.isListItem(line))) {
+		editor.replaceRange("\t", cursor)
+		editor.setCursor({line: cursor.line, ch: Math.max(0, cursor.ch+1)})
+	}
+	else {
+		editor?.exec('toggleFold')
+	}
 	// check if we are on a heading or bullet
 	// determine fold state of current item
 	// if folded: unfold at depth 1
@@ -319,6 +392,12 @@ export default class DiamondPickaxePlugin extends Plugin {
 	return true
   }
 
+  tests() {
+	
+
+  }
+
+  // CRUFT
 	// toggleOrgCycle(leaf: WorkspaceLeaf) {
 		// exec('goUp')
 		// const view = leaf.view;
