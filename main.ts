@@ -165,16 +165,32 @@ export default class DiamondPickaxePlugin extends Plugin {
 				}
 			}
 
+			// Otherwise insert the heading at the end of the document
 			editor.replaceRange('\n', {line: totalLines, ch: 0})
 			editor.replaceRange(headingStr, {line: totalLines+1, ch: 0})
 			editor.setCursor({line: totalLines, ch: headingStr.length})
 		}
 	})
+
+	this.addCommand({
+		id: 'heading-insert-here',
+		name: "Heading Insert here",
+		hotkeys: [
+			{
+			modifiers: ['Ctrl', 'Shift'],
+			key: 'Enter',
+			},
+		],
+        editorCallback: (editor: Editor, view: MarkdownView) => {
+			const cursor = editor.getCursor()
+			const prevHeadingLevel = this.prevHeadingLevel(editor, cursor.line)
+			const headingStr = "#".repeat(Math.max(1, prevHeadingLevel)) + " "
+
+			editor.replaceRange(headingStr, {line: cursor.line, ch: 0})
+			editor.setCursor({line: cursor.line, ch: headingStr.length + cursor.ch})
+		}
+	})
   }
-
-    getListBlock() {
-
-	}
 
 	prevHeadingLn(editor: Editor, fromLn: number, strict : boolean = false) : number | undefined {
 		var currentLn = fromLn
