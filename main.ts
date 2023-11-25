@@ -9,7 +9,6 @@ import { test } from 'node:test';
 
 export default class DiamondPickaxePlugin extends Plugin {
   async onload() {
-    this.tests()
 	this.registerEditorExtension(Prec.highest(keymap.of(
 		[{
 			key: 'Tab',
@@ -150,25 +149,98 @@ export default class DiamondPickaxePlugin extends Plugin {
 			},
 		],
         editorCallback: (editor: Editor, view: MarkdownView) => {
+			// TODO: Integrace the case for inside and end of document.
+			// TODO: Make it such that it works at the beginning of the
+			//       document when backward search does not find a heading.
+
 			const startLn = editor.getCursor().line
 			const prevHeadingLevel = this.prevHeadingLevel(editor, startLn)
 			const headingStr = "#".repeat(Math.max(1, prevHeadingLevel)) + " "
 			const totalLines = editor.lineCount()
 
-			for (let currentLn = startLn + 1; currentLn < totalLines; currentLn++) {
+			// TODO: The behavior when using this is inconsistent with the expected behavior
+			//       when there is an initial section of text without a heading. The heading
+			//       should be inserted after the text not before.
+			// If there are no headings
+			if (prevHeadingLevel == 0) {
+				// Insert heading at the beginning of the document
+				var currentLn = 0
+				while (editor.getLine(currentLn+1) == '') {
+					editor.replaceRange(
+						"", 
+						{line: currentLn, ch: editor.getLine(currentLn).length}, 
+						{line: currentLn+1, ch: 0})
+				}
+				if (editor.getLine(currentLn) != '') {
+					editor.replaceRange('\n', {line: currentLn, ch: 0})
+					editor.setCursor({line: currentLn, ch: headingStr.length})
+				}
+				editor.replaceRange(headingStr, {line: 0, ch: 0})
+				editor.setCursor({line: 0, ch: headingStr.length})
+				return
+			}
+
+			// Iterate through lines to find the next heading
+			for (let currentLn = startLn + 1; currentLn <= totalLines; currentLn++) {
 				const line = editor.getLine(currentLn);
 				const headingLevel = this.headingLevel(line)
+				console.log("totalLines", totalLines, "currentLn", currentLn)
+				// Check if we are at a heading at equal or higher level that the starting heading
 				if (headingLevel != 0 && headingLevel <= Math.max(1, prevHeadingLevel)) {
-					editor.replaceRange(headingStr + "\n", {line: currentLn, ch: 0})
-					editor.setCursor({line: currentLn, ch: headingStr.length})
+					// Remove empty lines before the next heading
+					while (editor.getLine(currentLn - 1) == '') {
+						editor.replaceRange(
+							"", 
+							{line: currentLn - 1, ch: 0}, 
+							{line: currentLn, ch: 0})
+						currentLn--
+					}
+					// Insert heading before the next heading with a trailing new line
+					// Only insert trailing newline if the previous line is not a heading
+					if (! this.isHeading(editor.getLine(currentLn - 1))) {
+						editor.replaceRange(
+							'\n' + headingStr + '\n',
+							{line: currentLn, ch: 0})
+						editor.setCursor({
+							line: currentLn, ch: headingStr.length + 1})
+					} else {
+						editor.replaceRange(
+							headingStr + '\n', 
+							{line: currentLn, ch: 0})
+						editor.setCursor({
+							line: currentLn , ch: headingStr.length})
+					}
 					return
 				}
 			}
 
+			function lastLineNum() {
+				return editor.lineCount() - 1
+			}
+			function lastLine() {
+				return editor.getLine(lastLineNum())
+			}
+			var currentLn = totalLines - 1
+			while (editor.getLine(currentLn) == '') {
+				editor.replaceRange(
+					"", 
+					{line: currentLn-1, ch: editor.getLine(currentLn-1).length}, 
+					{line: currentLn, ch: 0})
+				currentLn--
+			}
+
+			editor.replaceRange('\n', {line: lastLineNum()+1, ch: lastLine.length})
+			if (! this.isHeading(editor.getLine(lastLineNum()-1))) {
+				editor.replaceRange('\n', {line: lastLineNum(), ch: lastLine.length})
+			}
+			editor.replaceRange(
+				headingStr, {line: lastLineNum(), ch: lastLine.length})
+			editor.setCursor({line: lastLineNum(), ch: headingStr.length})
+
 			// Otherwise insert the heading at the end of the document
-			editor.replaceRange('\n', {line: totalLines, ch: 0})
-			editor.replaceRange(headingStr, {line: totalLines+1, ch: 0})
-			editor.setCursor({line: totalLines, ch: headingStr.length})
+			// editor.replaceRange('\n', {line: totalLines, ch: 0})
+			// editor.replaceRange(headingStr, {line: totalLines+1, ch: 0})
+			// editor.setCursor({line: totalLines, ch: headingStr.length})
 		}
 	})
 
@@ -186,7 +258,9 @@ export default class DiamondPickaxePlugin extends Plugin {
 			const prevHeadingLevel = this.prevHeadingLevel(editor, cursor.line)
 			const headingStr = "#".repeat(Math.max(1, prevHeadingLevel)) + " "
 
+            // Insert heading
 			editor.replaceRange(headingStr, {line: cursor.line, ch: 0})
+			// Preserve cursor position relative to previous content on line
 			editor.setCursor({line: cursor.line, ch: headingStr.length + cursor.ch})
 		}
 	})
@@ -407,19 +481,4 @@ export default class DiamondPickaxePlugin extends Plugin {
 	//     fold all headings in subtree
 	return true
   }
-
-  tests() {
-	
-
-  }
-
-  // CRUFT
-	// toggleOrgCycle(leaf: WorkspaceLeaf) {
-		// exec('goUp')
-		// const view = leaf.view;
-		// const editor = view.editor;
-		// const cursor = editor.getCursor();
-		// const line = editor.getLine(cursor.line);
-		// editor.foldCode({ line: line.number, ch: 0 })
-	// }
 }
